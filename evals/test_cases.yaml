@@ -83,17 +83,24 @@ cases:
       - status_is: "success"
 
   - id: "EVAL-005"
-    name: "Severe Live Weather Condition (Dynamic Open-Meteo Integration)"
+    name: "Severe Live Weather Condition Evaluation"
     category: "severe_live_weather"
     input: "Is it safe to cycle in Bhopal today?"
+    location: "Bhopal"
     use_live_weather: true
-    expected_behavior: "System must call live Open-Meteo API, retrieve real non-fabricated numbers for Bhopal coordinates, match applicable SOP or clearance, and cite exact numbers."
+    severe_criteria:
+      description: "Severe meteorological condition threshold (wind >= 35 km/h, precipitation >= 10 mm, UV >= 8, or temp >= 38C or <= 5C)"
+      wind_speed_kmh_gte: 35.0
+      precipitation_mm_gte: 10.0
+      uv_index_gte: 8.0
+      temperature_c_gte: 38.0
+      temperature_c_lte: 5.0
+    expected_behavior: "System queries live Open-Meteo API. If live weather satisfies configured severe conditions, verifies an applicable severe SOP is selected, actual live numbers are cited, and SOP is cited. If severe conditions are not present at runtime, honestly reports environmental prerequisite was not present rather than falsely passing."
     checks:
-      - live_weather_retrieved
-      - location_resolved_to_bhopal
-      - no_invented_weather_values
-      - sop_citation_present
-      - status_is_success_or_advisory
+      - live_weather_retrieved_from_api
+      - check_severe_condition_satisfaction
+      - if_severe_then_sop_and_values_verified
+      - if_not_severe_then_prerequisite_reported
 
   - id: "EVAL-006"
     name: "Severe Monsoonal Deluge Overarching Policy"
@@ -214,14 +221,15 @@ cases:
     input: "Is today a good day for an outdoor picnic in Bhopal?"
     mock_weather:
       temperature_c: 24.0
-      wind_speed_kmh: 27.5 # triggers wind criterion >= 25 km/h in fuzzy picnic rule
-      precipitation_mm: 0.2
-      precipitation_probability: 30.0
+      wind_speed_kmh: 22.0 # triggers mixed wind factor [20-30 km/h]
+      precipitation_mm: 0.0
+      precipitation_probability: 10.0
       uv_index: 4.0
       timestamp: "2026-10-01T12:00"
       time_context: "today"
-    expected_behavior: "System evaluates non-linear multi-factor picnic rule SOP-011, flagging breezy conditions and providing shelter guidance."
+    expected_behavior: "System evaluates non-linear multi-factor picnic rule SOP-011 defined in YAML, deterministically rating conditions as Mixed."
     checks:
       - sop_matched: "SOP-011"
+      - suitability_is: "Mixed"
       - severity_is: "moderate"
       - status_is: "success"

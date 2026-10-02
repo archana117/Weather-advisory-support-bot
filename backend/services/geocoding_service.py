@@ -7,17 +7,14 @@ from backend.utils.logging_config import logger
 class GeocodingService:
     def __init__(self, base_url: Optional[str] = None):
         self.base_url = base_url or settings.OPEN_METEO_GEOCODING_URL
-        # In-memory location cache to protect against external rate-limits & DNS flakiness
-        self._cache: dict = {
-            "bhopal": LocationData(city="Bhopal", country="India", admin1="Madhya Pradesh", latitude=23.25469, longitude=77.40289, timezone="Asia/Kolkata"),
-            "mumbai": LocationData(city="Mumbai", country="India", admin1="Maharashtra", latitude=19.07283, longitude=72.88261, timezone="Asia/Kolkata"),
-            "london": LocationData(city="London", country="United Kingdom", admin1="England", latitude=51.50853, longitude=-0.12574, timezone="Europe/London"),
-            "srinagar": LocationData(city="Srinagar", country="India", admin1="Jammu and Kashmir", latitude=34.08565, longitude=74.79728, timezone="Asia/Kolkata"),
-        }
+        # In-memory cache: populated ONLY after successful Open-Meteo API resolution
+        self._cache: dict = {}
 
     async def resolve_city(self, city_name: Optional[str]) -> Optional[LocationData]:
         """
         Resolves a city name to geographic coordinates using Open-Meteo Geocoding API.
+        Takes the first returned result's latitude and longitude.
+        Caches successful API results only AFTER the API resolution.
         Returns LocationData on success, or None if unresolvable / API failure.
         """
         if not city_name or not city_name.strip():
@@ -27,15 +24,10 @@ class GeocodingService:
         clean_name = city_name.strip()
         cache_key = clean_name.lower()
 
-        # Check local cache first
+        # Cache is checked, but contains only entries previously returned by the API
         if cache_key in self._cache:
-            logger.info(f"Using cached geocoding for '{clean_name}'")
+            logger.info(f"Using cached API geocoding result for '{clean_name}'")
             return self._cache[cache_key]
-
-        # Explicitly unresolvable test marker
-        if "fake" in cache_key or "nonexistent" in cache_key or "atlantis" in cache_key:
-            logger.warning(f"Unresolvable test city name '{clean_name}'")
-            return None
 
         params = {
             "name": clean_name,

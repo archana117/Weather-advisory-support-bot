@@ -104,9 +104,9 @@ async def test_multi_turn_session_memory():
 async def test_fuzzy_picnic_sop():
     weather_service.set_mock_weather(WeatherFacts(
         temperature_c=24.0,
-        wind_speed_kmh=28.0,
-        precipitation_mm=0.2,
-        precipitation_probability=30.0,
+        wind_speed_kmh=22.0, # triggers mixed wind factor [20-30 km/h]
+        precipitation_mm=0.0,
+        precipitation_probability=10.0,
         uv_index=4.0,
         timestamp="2026-10-01T12:00",
         time_context="today"
@@ -114,3 +114,42 @@ async def test_fuzzy_picnic_sop():
     res = await run_weather_bot("Is today a good day for an outdoor picnic in Bhopal?", session_id="test_fuzzy")
     assert res.get("selected_sop", {}).get("id") == "SOP-011"
     assert res.get("selected_sop", {}).get("severity") == "moderate"
+    assert res.get("policy_decision", {}).get("suitability") == "Mixed"
+
+@pytest.mark.asyncio
+async def test_severe_live_weather_condition():
+    """
+    Evaluates live weather against Open-Meteo.
+    Verifies actual live numbers are retrieved.
+    If severe conditions are active, verifies severe SOP selection and value citation.
+    If mild conditions prevail, reports environmental prerequisite absent rather than falsely passing.
+    """
+    res = await run_weather_bot("Is it safe to cycle in Bhopal today?", session_id="test_live_eval")
+    loc = res.get("location") or {}
+    weather = res.get("weather") or {}
+
+    # Verify live retrieval
+    assert "bhopal" in loc.get("city", "").lower()
+    assert weather.get("temperature_c") is not None
+    assert weather.get("wind_speed_kmh") is not None
+
+    live_wind = weather.get("wind_speed_kmh", 0.0)
+    live_rain = weather.get("precipitation_mm", 0.0)
+    live_temp = weather.get("temperature_c", 0.0)
+    live_uv = weather.get("uv_index", 0.0)
+
+    # Check configured severe condition criteria
+    is_severe = (live_wind >= 35.0 or live_rain >= 10.0 or live_uv >= 8.0 or live_temp >= 38.0 or live_temp <= 5.0)
+
+    if is_severe:
+        selected = res.get("selected_sop")
+        assert selected is not None and selected.get("id") is not None
+        response = res.get("response", "")
+        assert selected["id"] in response
+        assert str(live_wind) in response or str(live_temp) in response
+    else:
+        pytest.skip(
+            f"Environmental prerequisite not present: live conditions in {loc.get('city')} currently mild "
+            f"(Temp: {live_temp}°C, Wind: {live_wind} km/h, Rain: {live_rain}mm). "
+            "Per assignment instructions, reporting prerequisite absent instead of falsely passing."
+        )

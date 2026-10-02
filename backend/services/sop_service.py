@@ -174,42 +174,104 @@ class SOPService:
             return False
         return False
 
-    def _evaluate_fuzzy_rule(self, fuzzy: FuzzyRuleSpec, weather: WeatherFacts) -> Tuple[bool, List[str]]:
+    def _evaluate_fuzzy_rule(self, fuzzy: FuzzyRuleSpec, weather: WeatherFacts) -> Tuple[bool, List[str], Optional[str], Optional[str], Optional[List[str]], Optional[str]]:
         """
-        Evaluates non-linear multi-variable criteria.
-        Returns (is_triggered, list_of_reasons).
+        Evaluates non-linear multi-variable criteria defined in the external SOP YAML.
+        Returns (is_matched, reasons, suitability, level_severity, level_guidance, level_decision).
+        Produces deterministic outcomes: 'Good', 'Mixed', or 'Poor'.
         """
         if fuzzy.type == "picnic_suitability":
-            crit = fuzzy.unsuitable_criteria or {}
+            factors = fuzzy.factors or {}
+            levels = fuzzy.levels or {}
+            factor_scores = {}
             reasons = []
 
-            p_prob_gte = crit.get("precipitation_probability_gte", 45.0)
-            if weather.precipitation_probability >= p_prob_gte:
-                reasons.append(f"Precipitation probability ({weather.precipitation_probability}%) >= {p_prob_gte}%")
+            # 1. Precipitation Probability Factor
+            p_prob_cfg = factors.get("precipitation_probability", {})
+            p_prob_val = weather.precipitation_probability
+            if p_prob_val >= p_prob_cfg.get("poor_threshold", 60.0):
+                factor_scores["precipitation_probability"] = "poor"
+                reasons.append(f"Precipitation probability ({p_prob_val}%) >= poor threshold ({p_prob_cfg.get('poor_threshold', 60.0)}%)")
+            elif p_prob_val >= p_prob_cfg.get("mixed_threshold", 30.0):
+                factor_scores["precipitation_probability"] = "mixed"
+                reasons.append(f"Precipitation probability ({p_prob_val}%) >= marginal threshold ({p_prob_cfg.get('mixed_threshold', 30.0)}%)")
+            else:
+                factor_scores["precipitation_probability"] = "good"
 
-            p_mm_gte = crit.get("precipitation_mm_gte", 1.0)
-            if weather.precipitation_mm >= p_mm_gte:
-                reasons.append(f"Precipitation ({weather.precipitation_mm}mm) >= {p_mm_gte}mm")
+            # 2. Precipitation Volume Factor (mm)
+            p_mm_cfg = factors.get("precipitation_mm", {})
+            p_mm_val = weather.precipitation_mm
+            if p_mm_val >= p_mm_cfg.get("poor_threshold", 2.0):
+                factor_scores["precipitation_mm"] = "poor"
+                reasons.append(f"Precipitation ({p_mm_val}mm) >= poor threshold ({p_mm_cfg.get('poor_threshold', 2.0)}mm)")
+            elif p_mm_val >= p_mm_cfg.get("mixed_threshold", 0.5):
+                factor_scores["precipitation_mm"] = "mixed"
+                reasons.append(f"Precipitation ({p_mm_val}mm) >= marginal threshold ({p_mm_cfg.get('mixed_threshold', 0.5)}mm)")
+            else:
+                factor_scores["precipitation_mm"] = "good"
 
-            wind_gte = crit.get("wind_speed_kmh_gte", 25.0)
-            if weather.wind_speed_kmh >= wind_gte:
-                reasons.append(f"Wind speed ({weather.wind_speed_kmh} km/h) >= {wind_gte} km/h")
+            # 3. Wind Speed Factor (km/h)
+            wind_cfg = factors.get("wind_speed_kmh", {})
+            wind_val = weather.wind_speed_kmh
+            if wind_val >= wind_cfg.get("poor_threshold", 30.0):
+                factor_scores["wind_speed_kmh"] = "poor"
+                reasons.append(f"Wind speed ({wind_val} km/h) >= poor threshold ({wind_cfg.get('poor_threshold', 30.0)} km/h)")
+            elif wind_val >= wind_cfg.get("mixed_threshold", 20.0):
+                factor_scores["wind_speed_kmh"] = "mixed"
+                reasons.append(f"Wind speed ({wind_val} km/h) >= marginal threshold ({wind_cfg.get('mixed_threshold', 20.0)} km/h)")
+            else:
+                factor_scores["wind_speed_kmh"] = "good"
 
-            temp_max = crit.get("temperature_max_c", 35.0)
-            if weather.temperature_c >= temp_max:
-                reasons.append(f"Temperature ({weather.temperature_c}°C) exceeds comfort ceiling {temp_max}°C")
+            # 4. Temperature Comfort Factor (°C)
+            temp_cfg = factors.get("temperature_c", {})
+            temp_val = weather.temperature_c
+            acc_min = temp_cfg.get("acceptable_min", 14.0)
+            acc_max = temp_cfg.get("acceptable_max", 34.0)
+            ideal_min = temp_cfg.get("ideal_min", 18.0)
+            ideal_max = temp_cfg.get("ideal_max", 28.0)
 
-            temp_min = crit.get("temperature_min_c", 14.0)
-            if weather.temperature_c <= temp_min:
-                reasons.append(f"Temperature ({weather.temperature_c}°C) below comfortable threshold {temp_min}°C")
+            if temp_val < acc_min or temp_val > acc_max:
+                factor_scores["temperature_c"] = "poor"
+                reasons.append(f"Temperature ({temp_val}°C) outside acceptable bounds [{acc_min}°C, {acc_max}°C]")
+            elif temp_val < ideal_min or temp_val > ideal_max:
+                factor_scores["temperature_c"] = "mixed"
+                reasons.append(f"Temperature ({temp_val}°C) outside ideal comfort [{ideal_min}°C, {ideal_max}°C]")
+            else:
+                factor_scores["temperature_c"] = "good"
 
-            uv_gte = crit.get("uv_index_gte", 9.0)
-            if weather.uv_index >= uv_gte:
-                reasons.append(f"UV Index ({weather.uv_index}) >= {uv_gte}")
+            # 5. UV Index Factor
+            uv_cfg = factors.get("uv_index", {})
+            uv_val = weather.uv_index
+            if uv_val >= uv_cfg.get("poor_threshold", 8.0):
+                factor_scores["uv_index"] = "poor"
+                reasons.append(f"UV Index ({uv_val}) >= poor threshold ({uv_cfg.get('poor_threshold', 8.0)})")
+            elif uv_val >= uv_cfg.get("mixed_threshold", 6.0):
+                factor_scores["uv_index"] = "mixed"
+                reasons.append(f"UV Index ({uv_val}) >= marginal threshold ({uv_cfg.get('mixed_threshold', 6.0)})")
+            else:
+                factor_scores["uv_index"] = "good"
 
-            return (len(reasons) > 0, reasons)
+            # Composite Suitability Determination: Good / Mixed / Poor
+            poor_count = sum(1 for s in factor_scores.values() if s == "poor")
+            mixed_count = sum(1 for s in factor_scores.values() if s == "mixed")
 
-        return (False, [])
+            if poor_count > 0 or mixed_count >= 2:
+                suitability = "Poor"
+            elif mixed_count > 0:
+                suitability = "Mixed"
+            else:
+                suitability = "Good"
+
+            reasons.insert(0, f"Composite Multi-Factor Picnic Suitability: {suitability.upper()}")
+
+            lvl_info = levels.get(suitability.lower(), {})
+            level_sev = lvl_info.get("severity", "moderate")
+            level_guidance = lvl_info.get("guidance", [])
+            level_dec = lvl_info.get("decision", "advisory_issued")
+
+            return (True, reasons, suitability, level_sev, level_guidance, level_dec)
+
+        return (False, [], None, None, None, None)
 
     def evaluate(self, intent: UserIntent, weather: WeatherFacts) -> PolicyEvaluationResult:
         """
@@ -219,7 +281,7 @@ class SOPService:
         # Reload SOPs to guarantee dynamic updates without code changes
         self.load_sops()
 
-        matched_sops: List[Tuple[SOP, List[str]]] = []
+        matched_sops: List[Tuple[SOP, List[str], Optional[str], Optional[str], Optional[List[str]], Optional[str]]] = []
         fact_dict = weather.to_summary_dict()
 
         for sop in self._sops:
@@ -255,14 +317,19 @@ class SOPService:
                 continue
 
             # Check fuzzy rule if present
+            suitability = None
+            custom_sev = None
+            custom_guidance = None
+            custom_dec = None
+
             if sop.fuzzy_rule:
-                fuzzy_matched, fuzzy_reasons = self._evaluate_fuzzy_rule(sop.fuzzy_rule, weather)
-                if not fuzzy_matched:
+                f_matched, f_reasons, suitability, custom_sev, custom_guidance, custom_dec = self._evaluate_fuzzy_rule(sop.fuzzy_rule, weather)
+                if not f_matched:
                     continue
-                reasons.extend(fuzzy_reasons)
+                reasons.extend(f_reasons)
 
             # If all conditions passed, record match
-            matched_sops.append((sop, reasons))
+            matched_sops.append((sop, reasons, suitability, custom_sev, custom_guidance, custom_dec))
 
         if not matched_sops:
             logger.info(f"No SOP matched for activity='{intent.activity}', facts={fact_dict}")
@@ -283,39 +350,44 @@ class SOPService:
         # Step A: Sort by severity weight (critical: 4, high: 3, moderate: 2, low: 1) descending
         # Step B: Sort by priority score (1-100) descending
         # Step C: Prefer activity-specific policy over generic 'any' policy
-        def conflict_sort_key(item: Tuple[SOP, List[str]]):
-            s, _ = item
-            sev_score = SEVERITY_WEIGHTS.get(s.severity, 1)
+        def conflict_sort_key(item):
+            s, _, _, custom_sev, _, _ = item
+            effective_sev = custom_sev or s.severity
+            sev_score = SEVERITY_WEIGHTS.get(effective_sev, 1)
             prio_score = s.priority
             specificity = 0 if "any" in s.applicable_activities else 1
             return (sev_score, prio_score, specificity)
 
         matched_sops.sort(key=conflict_sort_key, reverse=True)
 
-        primary_sop, primary_reasons = matched_sops[0]
-        other_matching_ids = [s.id for s, _ in matched_sops[1:]]
+        primary_sop, primary_reasons, primary_suitability, primary_custom_sev, primary_custom_guidance, primary_custom_dec = matched_sops[0]
+        other_matching_ids = [s.id for s, _, _, _, _, _ in matched_sops[1:]]
 
-        decision = "safe_to_proceed" if primary_sop.severity == "low" else "advisory_issued"
+        final_severity = primary_custom_sev or primary_sop.severity
+        final_guidance = primary_custom_guidance or primary_sop.guidance
+        final_decision = primary_custom_dec or ("safe_to_proceed" if final_severity == "low" else "advisory_issued")
 
         logger.info(
-            f"Policy selected: {primary_sop.id} ({primary_sop.name}) [Severity: {primary_sop.severity}, Priority: {primary_sop.priority}]. "
+            f"Policy selected: {primary_sop.id} ({primary_sop.name}) [Severity: {final_severity}, Priority: {primary_sop.priority}, Suitability: {primary_suitability}]. "
             f"Secondary matches: {other_matching_ids}"
         )
 
         return PolicyEvaluationResult(
             sop_id=primary_sop.id,
             sop_name=primary_sop.name,
-            severity=primary_sop.severity,
-            decision=decision,
+            severity=final_severity,
+            decision=final_decision,
+            suitability=primary_suitability,
             matched_conditions=primary_reasons,
             weather_facts=fact_dict,
-            guidance=primary_sop.guidance,
+            guidance=final_guidance,
             rationale=primary_sop.rationale,
             conflicting_sops=other_matching_ids,
             audit_trail={
                 "evaluated_sops_count": len(self._sops),
                 "matches_found": len(matched_sops),
-                "all_matched_ids": [s.id for s, _ in matched_sops]
+                "all_matched_ids": [s.id for s, _, _, _, _, _ in matched_sops],
+                "fuzzy_suitability": primary_suitability
             }
         )
 

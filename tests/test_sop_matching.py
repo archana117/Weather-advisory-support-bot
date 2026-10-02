@@ -58,19 +58,54 @@ def test_conflict_resolution_severity_and_priority():
 
 def test_fuzzy_picnic_suitability():
     intent = UserIntent(activity="picnic", user_group="all", time_reference="today")
-    # Windy picnic condition
-    weather = WeatherFacts(
-        temperature_c=25.0,
-        wind_speed_kmh=27.0, # >= 25 triggers picnic advisory
+
+    # 1. Ideal Good conditions: 22°C, 10 km/h wind, 0% rain, UV 3.0
+    w_good = WeatherFacts(
+        temperature_c=22.0,
+        wind_speed_kmh=10.0,
         precipitation_mm=0.0,
-        precipitation_probability=10.0,
+        precipitation_probability=5.0,
         uv_index=3.0,
         timestamp="2026-10-01T12:00",
         time_context="today"
     )
-    result = sop_service.evaluate(intent, weather)
-    assert result.sop_id == "SOP-011"
-    assert result.severity == "moderate"
+    res_good = sop_service.evaluate(intent, w_good)
+    assert res_good.sop_id == "SOP-011"
+    assert res_good.suitability == "Good"
+    assert res_good.severity == "low"
+    assert res_good.decision == "safe_to_proceed"
+
+    # 2. Mixed conditions: elevated wind (24 km/h), mild rain prob (15%)
+    w_mixed = WeatherFacts(
+        temperature_c=24.0,
+        wind_speed_kmh=24.0, # mixed wind factor [20, 30]
+        precipitation_mm=0.0,
+        precipitation_probability=15.0,
+        uv_index=4.0,
+        timestamp="2026-10-01T12:00",
+        time_context="today"
+    )
+    res_mixed = sop_service.evaluate(intent, w_mixed)
+    assert res_mixed.sop_id == "SOP-011"
+    assert res_mixed.suitability == "Mixed"
+    assert res_mixed.severity == "moderate"
+    assert res_mixed.decision == "advisory_issued"
+
+    # 3. Poor conditions: high rain (5mm) and high wind (35 km/h)
+    w_poor = WeatherFacts(
+        temperature_c=36.0,
+        wind_speed_kmh=35.0, # poor wind
+        precipitation_mm=5.0,  # poor rain
+        precipitation_probability=85.0,
+        uv_index=9.0,
+        timestamp="2026-10-01T12:00",
+        time_context="today"
+    )
+    res_poor = sop_service.evaluate(intent, w_poor)
+    assert res_poor.sop_id == "SOP-011"
+    assert res_poor.suitability == "Poor"
+    assert res_poor.severity == "high"
+    assert res_poor.decision == "advisory_issued"
 
 def test_dynamic_sop_addition(tmp_path):
     """

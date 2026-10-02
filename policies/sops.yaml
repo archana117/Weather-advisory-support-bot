@@ -190,27 +190,57 @@ sops:
     rationale: "At ambient temperatures above 31°C with moderate-to-high UV, asphalt temperatures exceed 52°C, causing 2nd-degree paw pad burns within 60 seconds."
 
   - id: "SOP-011"
-    name: "Outdoor Picnic & Social Gathering Suitability Advisory"
+    name: "Outdoor Picnic & Social Gathering Multi-Factor Suitability"
     category: "general_outdoor"
     severity: "moderate"
-    priority: 50
+    priority: 60
     applicable_activities: ["picnic", "barbecue", "bbq", "outdoor_lunch", "outdoor_gathering"]
     applicable_user_groups: ["all"]
-    # Fuzzy multi-factor composite evaluation:
+    # Genuinely multi-factor fuzzy evaluation matrix fully externalized in YAML
     fuzzy_rule:
       type: "picnic_suitability"
-      unsuitable_criteria:
-        precipitation_probability_gte: 45.0
-        precipitation_mm_gte: 1.0
-        wind_speed_kmh_gte: 25.0
-        temperature_max_c: 35.0
-        temperature_min_c: 14.0
-        uv_index_gte: 9.0
+      factors:
+        precipitation_probability:
+          poor_threshold: 60.0
+          mixed_threshold: 30.0
+        precipitation_mm:
+          poor_threshold: 2.0
+          mixed_threshold: 0.5
+        wind_speed_kmh:
+          poor_threshold: 30.0
+          mixed_threshold: 20.0
+        temperature_c:
+          ideal_min: 18.0
+          ideal_max: 28.0
+          acceptable_min: 14.0
+          acceptable_max: 34.0
+        uv_index:
+          poor_threshold: 8.0
+          mixed_threshold: 6.0
+      levels:
+        poor:
+          severity: "high"
+          decision: "advisory_issued"
+          guidance:
+            - "Outdoor picnic conditions are rated POOR due to adverse meteorological factors."
+            - "Recommend postponing or moving the gathering to an enclosed indoor venue."
+            - "High risk of dining disruption, rapid food spoilage, or severe weather discomfort."
+        mixed:
+          severity: "moderate"
+          decision: "advisory_issued"
+          guidance:
+            - "Outdoor picnic conditions are rated MIXED (Marginal)."
+            - "Viable with precautions: reserve covered pavilion shelter and monitor radar."
+            - "Maintain perishable food in insulated coolers below 4°C; secure lightweight items against wind."
+        good:
+          severity: "low"
+          decision: "safe_to_proceed"
+          guidance:
+            - "Outdoor picnic conditions are rated GOOD (Ideal) across environmental factors."
+            - "Comfortable outdoor dining conditions with standard hydration and basic sun protection."
     guidance:
-      - "Assess current multi-factor conditions for dining comfort and food safety."
-      - "If rain probability exceeds 40% or winds exceed 25 km/h, secure covered pavilion shelters."
-      - "Maintain perishable food in insulated chillers below 4°C to prevent rapid bacterial spoilage."
-    rationale: "Picnic suitability cannot be judged by temperature alone; wind, rain probability, UV, and thermal comfort interact to dictate hygiene and safety."
+      - "Assess multi-factor conditions (rain probability, precipitation, wind, temperature, UV) for dining comfort and food safety."
+    rationale: "Picnic suitability cannot be judged by temperature alone; wind, rain probability, precipitation, UV index, and thermal comfort interact dynamically to dictate outdoor meal safety and hygiene."
 
   - id: "SOP-012"
     name: "Sub-Zero Freezing Trail & Running Slip Hazard"

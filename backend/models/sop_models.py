@@ -18,6 +18,8 @@ class ConditionSpec(BaseModel):
 
 class FuzzyRuleSpec(BaseModel):
     type: str
+    factors: Optional[Dict[str, Any]] = None
+    levels: Optional[Dict[str, Any]] = None
     unsuitable_criteria: Optional[Dict[str, float]] = None
 
 class SOP(BaseModel):
@@ -39,6 +41,7 @@ class PolicyEvaluationResult(BaseModel):
     sop_name: Optional[str] = None
     severity: Optional[SeverityLevel] = None
     decision: str = "no_sop_matched" # "advisory_issued", "safe_to_proceed", "no_sop_matched"
+    suitability: Optional[str] = None # e.g. "Good", "Mixed", "Poor"
     matched_conditions: List[str] = Field(default_factory=list)
     weather_facts: Dict[str, Any] = Field(default_factory=dict)
     guidance: List[str] = Field(default_factory=list)
