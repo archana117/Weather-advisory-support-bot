@@ -1,0 +1,256 @@
+# Standard Operating Procedures (SOPs) for Weather Advisory Safety
+# These rules are externalized so safety policies can be updated, added, or retired
+# without modifying any Python application logic, weather fetching, or LLM code.
+
+sops:
+  - id: "SOP-001"
+    name: "Strong Wind Hazard for Cycling and Two-Wheelers"
+    category: "outdoor_exercise"
+    severity: "high"
+    priority: 85
+    applicable_activities: ["cycling", "biking", "bike_ride", "two_wheeler", "scooter"]
+    applicable_user_groups: ["all"]
+    conditions:
+      wind_speed_kmh:
+        operator: ">="
+        value: 40.0
+    guidance:
+      - "Advise against cycling or operating two-wheelers under crosswind and gust hazards."
+      - "Recommend using enclosed motor transit or public transit instead."
+      - "If travel is unavoidable, wear full protective gear and reduce travel speed."
+    rationale: "Sustained winds and gusts at or above 40 km/h cause instability, veer cyclists into traffic lanes, and dramatically increase collision and fall risks."
+
+  - id: "SOP-002"
+    name: "Extreme Solar Ultraviolet Radiation Advisory"
+    category: "outdoor_exercise"
+    severity: "high"
+    priority: 80
+    applicable_activities: ["cycling", "running", "jogging", "sports", "workout", "outdoor_exercise"]
+    applicable_user_groups: ["all"]
+    conditions:
+      uv_index:
+        operator: ">="
+        value: 8.0
+    time_window:
+      start: "11:00"
+      end: "16:00"
+    guidance:
+      - "Advise against unprotected vigorous outdoor exercise between 11:00 and 16:00."
+      - "Mandate broad-spectrum SPF 50+ sunscreen, UV-blocking eyewear, and protective clothing."
+      - "Recommend rescheduling high-exertion workouts to early morning (before 09:00) or post-sunset."
+    rationale: "UV index >= 8 (very high/extreme) causes cellular skin damage, photokeratitis, and rapid heat exhaustion in under 15 minutes of direct sun exposure."
+
+  - id: "SOP-003"
+    name: "Active Low-Pressure & Monsoonal Deluge Warning"
+    category: "general_outdoor"
+    severity: "critical"
+    priority: 95
+    applicable_activities: ["any"]
+    applicable_user_groups: ["all"]
+    conditions:
+      precipitation_mm:
+        operator: ">="
+        value: 20.0
+      precipitation_probability:
+        operator: ">="
+        value: 75.0
+    guidance:
+      - "Issue critical safety warning: High-volume rainfall and localized waterlogging detected."
+      - "Advise postponing all non-essential outdoor activities immediately."
+      - "Stay clear of storm drains, electrical poles, and low-lying underpasses."
+      - "Check regional disaster management and meteorological bulletins before any movement."
+    rationale: "Heavy precipitation (>= 20 mm with >= 75% probability) represents severe monsoonal or tropical low-pressure inundation, presenting flash flooding and infrastructure failure risks."
+
+  - id: "SOP-004"
+    name: "Severe Convective Thunderstorm & Gale Wind Alert"
+    category: "general_outdoor"
+    severity: "critical"
+    priority: 90
+    applicable_activities: ["any"]
+    applicable_user_groups: ["all"]
+    conditions:
+      wind_speed_kmh:
+        operator: ">="
+        value: 50.0
+      precipitation_probability:
+        operator: ">="
+        value: 60.0
+    guidance:
+      - "Advise immediate indoor shelter away from windows and glass structures."
+      - "Halt all outdoor recreation, sports, and transit."
+      - "Avoid open fields, hilltops, and isolated trees due to severe lightning and projectile hazard."
+    rationale: "Convective storm conditions combining high winds (>= 50 km/h) and precipitation carry severe lightning strike, structural damage, and falling limb dangers."
+
+  - id: "SOP-005"
+    name: "Highway Travel Rain & Hydroplaning Risk"
+    category: "travel"
+    severity: "high"
+    priority: 75
+    applicable_activities: ["travel", "driving", "road_trip", "highway_travel", "commuting"]
+    applicable_user_groups: ["all"]
+    conditions:
+      precipitation_mm:
+        operator: ">="
+        value: 7.5
+      precipitation_probability:
+        operator: ">="
+        value: 70.0
+    guidance:
+      - "Warn of standing water, severe visibility reduction, and hydroplaning hazards on highways."
+      - "Advise reducing vehicular speed by at least 20-30% and doubling following distance."
+      - "Ensure headlights and windshield wipers are in continuous operation; avoid cruise control."
+    rationale: "Moderate-to-heavy road surface water reduces tire friction drastically, precipitating dynamic hydroplaning and multi-vehicle pileups."
+
+  - id: "SOP-006"
+    name: "High Wind Gale Hazard for Open Highway Driving"
+    category: "travel"
+    severity: "moderate"
+    priority: 65
+    applicable_activities: ["travel", "driving", "road_trip", "highway_travel"]
+    applicable_user_groups: ["all"]
+    conditions:
+      wind_speed_kmh:
+        operator: ">="
+        value: 45.0
+    guidance:
+      - "Warn drivers of high-sided vehicles, RVs, and trailers about dangerous lateral wind buffeting."
+      - "Exercise extreme caution over open bridges, viaducts, and mountain passes."
+      - "Maintain a firm two-handed grip on the steering wheel and anticipate sudden cross-gusts."
+    rationale: "Sustained lateral winds exceeding 45 km/h compromise vehicle stability and lane tracking, particularly for high-profile vehicles."
+
+  - id: "SOP-007"
+    name: "Vulnerable Populations Extreme Heat Wave Emergency"
+    category: "vulnerable_groups"
+    severity: "critical"
+    priority: 95
+    applicable_activities: ["any"]
+    applicable_user_groups: ["children", "elderly", "infants", "vulnerable"]
+    conditions:
+      temperature_c:
+        operator: ">="
+        value: 38.0
+    guidance:
+      - "Strictly advise keeping infants, children, and elderly individuals in climate-controlled indoor spaces."
+      - "Never leave children or dependents in stationary vehicles under any circumstances."
+      - "Enforce frequent hydration with electrolyte-balanced fluids; watch for heat stroke symptoms."
+    rationale: "Ambient temperatures at or exceeding 38°C overwhelm thermoregulatory mechanisms in developing children and older adults, rapidly inducing clinical heat hyperpyrexia."
+
+  - id: "SOP-008"
+    name: "Infants and Young Children Freezing Exposure Hazard"
+    category: "vulnerable_groups"
+    severity: "high"
+    priority: 80
+    applicable_activities: ["any"]
+    applicable_user_groups: ["children", "infants", "toddlers"]
+    conditions:
+      temperature_c:
+        operator: "<="
+        value: 5.0
+    guidance:
+      - "Limit outdoor exposure for infants and toddlers to under 15 minutes."
+      - "Ensure multiple thermal insulating layers, windproof outer shells, mitts, and head coverings."
+      - "Immediately inspect extremities for pallor, numbness, or signs of early hypothermia."
+    rationale: "Infants possess high body-surface-area to mass ratios and cannot shiver efficiently, leading to precipitous core temperature drops below 5°C."
+
+  - id: "SOP-009"
+    name: "Children Playground High Solar UV Advisory"
+    category: "vulnerable_groups"
+    severity: "moderate"
+    priority: 60
+    applicable_activities: ["park", "playground", "outdoor_play", "playing"]
+    applicable_user_groups: ["children", "kids"]
+    conditions:
+      uv_index:
+        operator: ">="
+        value: 6.0
+    guidance:
+      - "Seek shaded playground structures and avoid unshaded metal/plastic slides during midday."
+      - "Apply water-resistant broad-spectrum SPF 30+ sunscreen 20 minutes prior to play."
+      - "Provide wide-brimmed hats and ensure children drink water every 20 minutes."
+    rationale: "Children's delicate skin barrier is susceptible to erythema and cumulative UV damage at UV indices >= 6, with hot playground surfaces posing thermal contact burns."
+
+  - id: "SOP-010"
+    name: "Canine Scorching Pavement & Heat Stress Alert"
+    category: "pets"
+    severity: "high"
+    priority: 75
+    applicable_activities: ["dog_walking", "walking_dog", "pet_walk", "pet_care"]
+    applicable_user_groups: ["pets", "dogs"]
+    conditions:
+      temperature_c:
+        operator: ">="
+        value: 31.0
+      uv_index:
+        operator: ">="
+        value: 5.0
+    guidance:
+      - "Perform the 7-second back-of-hand test on asphalt before walking; if too hot for hand, too hot for paws."
+      - "Restrict dog walks to shaded grass surfaces during early morning or late night hours."
+      - "Carry potable water and watch for heavy panting, drooling, or lethargy indicating canine heat exhaustion."
+    rationale: "At ambient temperatures above 31°C with moderate-to-high UV, asphalt temperatures exceed 52°C, causing 2nd-degree paw pad burns within 60 seconds."
+
+  - id: "SOP-011"
+    name: "Outdoor Picnic & Social Gathering Suitability Advisory"
+    category: "general_outdoor"
+    severity: "moderate"
+    priority: 50
+    applicable_activities: ["picnic", "barbecue", "bbq", "outdoor_lunch", "outdoor_gathering"]
+    applicable_user_groups: ["all"]
+    # Fuzzy multi-factor composite evaluation:
+    fuzzy_rule:
+      type: "picnic_suitability"
+      unsuitable_criteria:
+        precipitation_probability_gte: 45.0
+        precipitation_mm_gte: 1.0
+        wind_speed_kmh_gte: 25.0
+        temperature_max_c: 35.0
+        temperature_min_c: 14.0
+        uv_index_gte: 9.0
+    guidance:
+      - "Assess current multi-factor conditions for dining comfort and food safety."
+      - "If rain probability exceeds 40% or winds exceed 25 km/h, secure covered pavilion shelters."
+      - "Maintain perishable food in insulated chillers below 4°C to prevent rapid bacterial spoilage."
+    rationale: "Picnic suitability cannot be judged by temperature alone; wind, rain probability, UV, and thermal comfort interact to dictate hygiene and safety."
+
+  - id: "SOP-012"
+    name: "Sub-Zero Freezing Trail & Running Slip Hazard"
+    category: "outdoor_exercise"
+    severity: "moderate"
+    priority: 55
+    applicable_activities: ["running", "jogging", "trail_running", "hiking"]
+    applicable_user_groups: ["all"]
+    conditions:
+      temperature_c:
+        operator: "<="
+        value: 0.0
+    guidance:
+      - "Watch for invisible black ice on shaded roads, trail segments, and bridges."
+      - "Equip running shoes with slip-resistant traction cleats or micro-spikes."
+      - "Wear a moisture-wicking thermal base layer and breathable windbreak to prevent sweat chilling."
+    rationale: "Sub-zero temperatures create severe slip/fall orthopaedic trauma risks and rapid cold-induced bronchospasm during aerobic exertion."
+
+  - id: "SOP-013"
+    name: "Mild Weather General Outdoor Activity Clearance"
+    category: "general_outdoor"
+    severity: "low"
+    priority: 20
+    applicable_activities: ["any"]
+    applicable_user_groups: ["all"]
+    conditions:
+      temperature_c:
+        operator: "between"
+        min_value: 18.0
+        max_value: 29.0
+      wind_speed_kmh:
+        operator: "<="
+        value: 20.0
+      precipitation_mm:
+        operator: "<="
+        value: 0.5
+      precipitation_probability:
+        operator: "<="
+        value: 25.0
+    guidance:
+      - "Conditions are optimal for outdoor recreational activities."
+      - "Standard hydration and basic sun protection recommended."
+    rationale: "Temperate thermal conditions, light breeze, and dry atmosphere present nominal environmental hazards for the general population."
