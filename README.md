@@ -33,6 +33,10 @@ A production-quality outdoor activity safety advisory assistant built with **Lan
 25. [How to Add an 11th SOP Without Modifying Code](#25-how-to-add-an-11th-sop-without-modifying-code)
 
 ---
+## 🚀 Live Demo
+
+**Try the deployed application:**  
+[Open Weather-Advisory Support Bot](https://weather-advisory-support-bot-ccynr74q8gygulcjta82dk.streamlit.app/)
 
 ## 1. Project Overview
 
